@@ -187,20 +187,17 @@ class Parameter:
     
     def __str__(self):
         if self.has_value == True:
-            #return self.name + " : " + str(self.value[self.idx])
             return self.name + " : " + str(self.curr_value)
         else:
             return self.name + " : True"
     def __repr__(self):
         if self.has_value == True:
-            #return self.name + " : " + str(self.value[self.idx])
             return self.name + " : " + str(self.curr_value)
         else:
             return self.name + " : True"
 
     def format_opt(self):
         if self.has_value == True:
-            #return "-" + self.flag + " " + str(self.value[self.idx])
             if self.flag is not None:
                 return "-" + self.flag + " " + str(self.curr_value)
             else:
@@ -226,7 +223,6 @@ class Parameter:
 
     def json_string(self):
         if self.has_value == True:
-            #return "\"" + self.name + "\" : " + str(self.value[self.idx])
             if type(self.curr_value) == str:
                 return "\"" + self.name + "\" : \"" + str(self.curr_value) + "\""
             else:
@@ -272,8 +268,6 @@ class ParameterList:
                 values.append(self.parameters[i].value[0])
             else:
                 values.append(None)
-
-        #print(tuple(values))
 
         return tuple(values)
 
@@ -604,7 +598,6 @@ def plot_avg(file, name, main, second, plot_type):
 
 
     fig = plt.figure(layout='constrained')
-    #fig = plt.figure(tight_layout=True)
 
     root = math.ceil(math.sqrt(len(main.value)))
 
@@ -666,200 +659,22 @@ def collapse_experiment(exp):
 
     for key in averages.keys():
         averages[key] = averages[key].return_dict()
-        #print(DataObject(key, 1, averages[key].return_dict()).json_string())
     
     return averages
-
-"""
-#######################################################################
-##### define your application parameters here #########################
-
-parameters = []
-parameters.append(Parameter("Type", "t", 0))
-parameters.append(Parameter("Total Requests", "r", 1000000))
-parameters.append(Parameter("Write Size", "s", [8, 64, 512, 8192]))
-parameters.append(Parameter("Execution Time", "T"))
-parameters.append(Parameter("Json", "j"))
-
-##### define your benchmarking parameters #############################
-
-thread_counting = 0  # 0 - off, 
-                     # 1 - track highest thread count, 
-                     # 2 - track changing values of thread count during execution 
-
-runs = 10            # How often is the experiment repeated per parameter set
-
-#######################################################################
-
-bo = BenchmarkObj("./write_test", filename="write_json.txt", parameters=parameters, runs=runs, threading=thread_counting)
-
-#bo.run_benchmark()
-
-
-"""
-
-
-"""
-#######################################################################
-##### define your application parameters here #########################
-
-parameters = ParameterList()
-parameters.add_para(Parameter("Type", "t", 1))
-parameters.add_para(Parameter("Batch Size", "b", [1, 10, 100, 1000]))
-parameters.add_para(Parameter("Total Requests", "r", 1000000))
-parameters.add_para(Parameter("Minimum Completions", "c", 0))
-parameters.add_para(Parameter("Write Size", "s", [64, 256, 1024, 4096]))
-parameters.add_para(Parameter("Track Pending", "p"))
-#parameters.add_para(Parameter("Plot Pending", "P"))
-parameters.add_para(Parameter("Track Completions", "o"))
-#parameters.add_para(Parameter("Plot Completions", "O"))
-parameters.add_para(Parameter("Completions at Exit", "e"))
-parameters.add_para(Parameter("Execution Time", "T"))
-parameters.add_para(Parameter("Json", "j"))
-
-
-##### define your benchmarking parameters #############################
-
-thread_counting = 1  # 0 - off, 
-                     # 1 - track highest thread count, 
-                     # 2 - track changing values of thread count during execution 
-
-runs = 100            # How often is the experiment repeated per parameter set
-
-#######################################################################
-
-
-
-bo = BenchmarkObj("io_uring_batch_writeSize", "./write_test", filename="new_test.txt", parameters=parameters, runs=runs, threading=thread_counting)
-
-bo.run_benchmark()
-
-bo.analyzer.average()
-
-plot_avg(bo.analyzer.avg_file, "Execution Time", parameters.parameters[1], parameters.parameters[4], 1)
-plot_avg(bo.analyzer.avg_file, "Pending", parameters.parameters[1], parameters.parameters[4], 1)
-plot_avg(bo.analyzer.avg_file, "Thread Count", parameters.parameters[1], parameters.parameters[4], 1)
-plot_avg(bo.analyzer.avg_file, "Completions", parameters.parameters[1], parameters.parameters[4], 1)
-plot_avg(bo.analyzer.avg_file, "Inflight Packets", parameters.parameters[1], parameters.parameters[4], 1)
-"""  
-"""
-#######################################################################
-##### define your application parameters here #########################
-
-parameters = ParameterList()
-parameters.add_para(Parameter("Type", "t", 1))
-parameters.add_para(Parameter("Batch Size", "b", [1, 10, 100, 1000]))
-parameters.add_para(Parameter("Total Requests", "r", 1000000))
-parameters.add_para(Parameter("Minimum Completions", "c", [0, 1/2, 1]))
-parameters.add_para(Parameter("Write Size", "s", 256))
-parameters.add_para(Parameter("Track Pending", "p"))
-#parameters.add_para(Parameter("Plot Pending", "P"))
-parameters.add_para(Parameter("Track Completions", "o"))
-#parameters.add_para(Parameter("Plot Completions", "O"))
-parameters.add_para(Parameter("Completions at Exit", "e"))
-parameters.add_para(Parameter("Execution Time", "T"))
-parameters.add_para(Parameter("Json", "j"))
-
-parameters.set_relation(3, 1)
-
-##### define your benchmarking parameters #############################
-
-thread_counting = 1  # 0 - off, 
-                     # 1 - track highest thread count, 
-                     # 2 - track changing values of thread count during execution 
-
-runs = 100            # How often is the experiment repeated per parameter set
-
-#######################################################################
-
-
-
-bo = BenchmarkObj("io_uring_batch_completions", "./write_test", filename="new_test.txt", parameters=parameters, runs=runs, threading=thread_counting)
-
-bo.run_benchmark()
-
-bo.analyzer.average()
-
-plot_avg(bo.analyzer.avg_file, "Execution Time", parameters.parameters[1], parameters.parameters[3], 1)
-plot_avg(bo.analyzer.avg_file, "Pending", parameters.parameters[1], parameters.parameters[3], 1)
-plot_avg(bo.analyzer.avg_file, "Thread Count", parameters.parameters[1], parameters.parameters[3], 1)
-plot_avg(bo.analyzer.avg_file, "Completions", parameters.parameters[1], parameters.parameters[3], 1)
-plot_avg(bo.analyzer.avg_file, "Inflight Packets", parameters.parameters[1], parameters.parameters[3], 1)
- 
-#######################################################################
-##### define your application parameters here #########################
-
-parameters = ParameterList()
-parameters.add_para(Parameter("Type", "t", 0))
-parameters.add_para(Parameter("Total Requests", "r", 1000000))
-parameters.add_para(Parameter("Write Size", "s", [64, 256, 1024, 4096]))
-parameters.add_para(Parameter("Execution Time", "T"))
-parameters.add_para(Parameter("Json", "j"))
-
-##### define your benchmarking parameters #############################
-
-thread_counting = 0  # 0 - off, 
-                     # 1 - track highest thread count, 
-                     # 2 - track changing values of thread count during execution 
-
-runs = 100            # How often is the experiment repeated per parameter set
-
-#######################################################################
-
-
-
-bo = BenchmarkObj("normal_write", "./write_test", filename="new_test.txt", parameters=parameters, runs=runs, threading=thread_counting)
-
-bo.run_benchmark()
-
-bo.analyzer.average()
-
-plot_avg(bo.analyzer.avg_file, "Execution Time", parameters.parameters[0], parameters.parameters[2], 1)
-  
-
-
-
-"""
-
-#######################################################################
-##### define your application parameters here #########################
-
-parameters = ParameterList()
-parameters.add_para(Parameter("Server IP", values="10.0.0.3"))
-parameters.add_para(Parameter("Values", values=[1, 5, 10, 100, 1000, 2000, 4000, 8000]))
-
-##### define your benchmarking parameters #############################
-
-thread_counting = 0  # 0 - off, 
-                     # 1 - track highest thread count, 
-                     # 2 - track changing values of thread count during execution 
-
-runs = 50            # How often is the experiment repeated per parameter set
-
-#######################################################################
 
 
 
 
 argc = len(sys.argv)
 
-if argc > 1:
-    filename = sys.argv[1]
-else:
-    filename = "libtirpc_micorbenchmark"
+if argc < 2:
+    print("Usage: python3 benchmark.py <Path to TOML-config>")
 
-if argc > 2:
-    print("trying config")
-    bo = BenchmarkObj.from_config(ConfigObj(sys.argv[2]))
-else:
-    bo = BenchmarkObj(filename, "./client", filename="new_test.txt", parameters=parameters, runs=runs, threading=thread_counting)
+filename = sys.argv[1]
+bo = BenchmarkObj.from_config(ConfigObj(sys.argv[2]))
 
 bo.run_benchmark()
 
-#bo.analyzer.average()
-
-#plot_avg(bo.analyzer.avg_file, "Execution Time", parameters.parameters[1], parameters.parameters[3], 1)
-#plot_avg(bo.analyzer.avg_file, "Thread Count", parameters.parameters[1], parameters.parameters[3], 1)
 
 
 
