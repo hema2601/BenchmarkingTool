@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.gridspec as gridspec
 import math
-
+import tomli
 
 class min_max_avg:
     minimum = None
@@ -486,6 +486,34 @@ class ExperimentObj:
         
         self.analyzer.add(" ], \"Run Count\" : " + str(self.run_counter) + " }")
 
+class ConfigObj:
+    conf_dict = None
+
+
+    def __init__(self, name):
+        fp = open(name, "rb")
+        self.conf_dict = tomli.load(fp)
+        fp.close()
+
+    def get_name(self):
+        return self.conf_dict["BASICS"]["BENCHMARK_NAME"]
+    def get_runs(self):
+        return self.conf_dict["BASICS"]["RUNS"]
+    def get_threading(self):
+        return self.conf_dict["BASICS"]["THREAD_COUNTING"]
+    def get_bin(self):
+        return self.conf_dict["BASICS"]["PATH_TO_BIN"]
+    def get_paras(self):
+        #Create Parameter List
+        parameters = ParameterList()
+        for name, flag, values in zip(self.conf_dict["PARAMETERS"]["NAMES"], 
+                                   self.conf_dict["PARAMETERS"]["SPECIFIERS"], 
+                                   self.conf_dict["PARAMETERS"]["VALUES"]) :
+            parameters.add_para(Parameter(name, 
+                                          flag if flag != "" else None, 
+                                          values if values != "" else None))
+        return parameters 
+
 class BenchmarkObj:
     date = None
     title = None
@@ -511,40 +539,19 @@ class BenchmarkObj:
 
         os.mkdir(self.dir_path)
         self.analyzer = JsonAnalyzer(self.dir_path+filename)
-    """
-    def get_para_combination(self):
-        ranged_paras = [para.value for para in self.parameters if para.has_range()]
-        #print(ranged_paras)
-        if len(ranged_paras) == 0:
-            return None
 
-        comb = ranged_paras[0]
+        
+    @classmethod
+    def from_config(cls, config):
+            
 
-        is_first = True
-        for para in ranged_paras[1:]:
-            if is_first == True:
-                comb = list(itertools.product(comb, para))
-                is_first = False
-            else:
-                comb = [(*flatten, rest) for flatten, rest in list(itertools.product(comb, para))]
-
-        if is_first == True:
-            ret = []
-            for x in comb:
-                ret.append((x, ))
-            return ret
-
-        return comb
-
-    def assign_paras(self, values):
-        ranged_paras = [para for para in self.parameters if para.has_range()]
-
-        if len(ranged_paras) == 0:
-            return
-
-        for i, para in enumerate(ranged_paras):
-            para.set_value(values[i])
-    """
+        return cls(config.get_name(),
+                   config.get_bin(),
+                   config.get_paras(),
+                   "json.txt",
+                   config.get_runs(),
+                   config.get_threading())
+        
 
     def run_benchmark(self):
         self.print_prologue()
@@ -819,7 +826,7 @@ plot_avg(bo.analyzer.avg_file, "Execution Time", parameters.parameters[0], param
 
 parameters = ParameterList()
 parameters.add_para(Parameter("Server IP", values="10.0.0.3"))
-parameters.add_para(Parameter("Values", values=[10, 100, 1000, 2000, 4000, 8000]))
+parameters.add_para(Parameter("Values", values=[1, 5, 10, 100, 1000, 2000, 4000, 8000]))
 
 ##### define your benchmarking parameters #############################
 
@@ -841,11 +848,15 @@ if argc > 1:
 else:
     filename = "libtirpc_micorbenchmark"
 
-bo = BenchmarkObj(filename, "./client", filename="new_test.txt", parameters=parameters, runs=runs, threading=thread_counting)
+if argc > 2:
+    print("trying config")
+    bo = BenchmarkObj.from_config(ConfigObj(sys.argv[2]))
+else:
+    bo = BenchmarkObj(filename, "./client", filename="new_test.txt", parameters=parameters, runs=runs, threading=thread_counting)
 
 bo.run_benchmark()
 
-bo.analyzer.average()
+#bo.analyzer.average()
 
 #plot_avg(bo.analyzer.avg_file, "Execution Time", parameters.parameters[1], parameters.parameters[3], 1)
 #plot_avg(bo.analyzer.avg_file, "Thread Count", parameters.parameters[1], parameters.parameters[3], 1)
