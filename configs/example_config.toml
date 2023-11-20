@@ -1,0 +1,15 @@
+#Benchmark config file in TOML
+
+[BASICS]
+PATH_TO_BIN = "/home/hema/RPC_Research/rpc_demo/client"
+RUNS = 50
+THREAD_COUNTING = 0
+BENCHMARK_NAME="test"
+
+[PARAMETERS]
+NAMES = ["Server IP", "Values"]
+SPECIFIERS = ["", ""]
+VALUES = ["10.0.0.3", [10, 100, 1000, 2000, 4000, 8000]]
+
+[POST-PROCESSING]
+AVERAGE = true 
