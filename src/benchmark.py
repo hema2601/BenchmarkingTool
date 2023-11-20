@@ -481,6 +481,32 @@ class ExperimentObj:
         self.analyzer.add(" ], \"Run Count\" : " + str(self.run_counter) + " }")
 
 class ConfigObj:
+    """
+    A class that abstracts the access to the parsed TOML dictionary.
+    It translates complex accesses to the dictionary into simple funciton calls.
+    It also facilitates easy implementation of future changes in the config's format.
+
+    ...
+
+    Attributes
+    ----------
+    conf_dict : dictionary
+        the dictionary representing the parsed config file
+
+    Methods
+    -------
+    get_name()
+        Returns the name of the benchmark as defined in the config file
+    get_runs()
+        Returns the number of executions per parameter combination as defined in the config file
+    get_threading()
+        Returns the mode for thread couting as defined in the config file
+    get_bin()
+        Returns the path to the executable as defined in the config file
+    get_paras()
+        Returns a parameter list assembled from the values given in the config file
+
+    """
     conf_dict = None
 
 
@@ -661,22 +687,3 @@ def collapse_experiment(exp):
         averages[key] = averages[key].return_dict()
     
     return averages
-
-
-
-
-argc = len(sys.argv)
-
-if argc < 2:
-    print("Usage: python3 benchmark.py <Path to TOML-config>")
-
-filename = sys.argv[1]
-bo = BenchmarkObj.from_config(ConfigObj(sys.argv[2]))
-
-bo.run_benchmark()
-
-
-
-
-
-
