@@ -11,3 +11,5 @@ bo = b.BenchmarkObj.from_config(b.ConfigObj(sys.argv[2]))
 
 bo.run_benchmark()
 
+bo.run_post_processing()
+

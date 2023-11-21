@@ -63,6 +63,8 @@ class min_max_avg:
 def runningAvg(avg, val, cnt):
     return float(avg) + ((float(val) - float(avg)) / float(cnt))
 
+#TODO: Change the structure of this thing
+
 class JsonAnalyzer:
     root_filename = None
     raw_file = None
@@ -74,6 +76,8 @@ class JsonAnalyzer:
 
         split = os.path.split(file_name)
 
+
+        print(split)
 
         self.raw_file = open(split[0]+"/raw_"+split[1], 'w+', encoding="utf-8")
         
@@ -103,21 +107,58 @@ class JsonAnalyzer:
         self.avg_file.write(json.dumps(average_dict))
 
 
+    def cdf(self):
+       
+        #Create Folder for CDF graphs
+        dirpath = os.path.split(self.root_filename)[0] + "/CDF_Graphs/"
+        os.mkdir(dirpath)
+        
+        #TODO: Get cdf options from config (Maybe? Pending Design Choice...)
+        names=["Marshalling", "Unmarshalling"]
+        #######################################
 
-ja = None
+        #Retrieve raw data from json
+        self.raw_file.seek(0)
 
-def run_strace(binary, json=False):
+        json_dict = json.load(self.raw_file)
 
-    command = ['sudo', '/usr/bin/perf', 'stat']
+        
 
-    if json==True:
-        command.append('-j')
 
-    command.append(binary)
+        #Create a data list for every experiment
+        graphs = dict()
+        for x in range(json_dict["Experiment Count"]):
+            graphs[x] = list([] for _ in range(len(names)))
 
-    result = subprocess.run(command, capture_output=True, text=True)
 
-    return result.stderr
+        #Read data points from the dictionary
+        for exp in json_dict["Experiments"]:
+            for run in exp["Runs"]:
+                for out in run["Outputs"]:
+                    for i in range(len(names)):
+                        if names[i] in out.keys():
+                            graphs[exp["Experiment Index"]][i].append(out[names[i]])
+   
+
+        #For every selected experiment, create the requested CDF
+        for exp_idx, data in graphs.items():
+            #print(data)
+            for i in range(len(names)):
+                #Credit: GeeksForGeeks https://www.geeksforgeeks.org/how-to-calculate-and-plot-a-cumulative-distribution-function-with-matplotlib-in-python/
+                count, bins_count = np.histogram(data[i], bins=25) #TODO: Make number of bins dynamic
+
+                pdf = count / sum(count)
+
+                cdf = np.cumsum(pdf)
+
+                plt.clf()
+
+                plt.plot(bins_count[1:], cdf, label="CDF")
+                plt.legend()
+    
+                plt.savefig(dirpath + "CDF_Experiment#" + str(exp_idx) + "_" + names[i] + ".png")
+
+
 
 
 
@@ -346,17 +387,18 @@ class ParameterList:
 
 
 class Run:
-    idx = None
-    command = None
-    analyzer = None
-    thread_count_mode = None
-    output_counter = 0
+    #idx = None
+    #command = None
+    #analyzer = None
+    #thread_count_mode = None
+    #output_counter = 0
 
     def __init__(self, idx, command, analyzer, thread_count_mode=0):
         self.idx = idx
         self.command = command
         self.analyzer = analyzer
         self.thread_count_mode = thread_count_mode
+        self.output_counter = 0
 
     def count_threads(self, proc):
 
@@ -600,6 +642,86 @@ class BenchmarkObj:
 
     def finalize(self):
         self.analyzer.raw_file.close()
+
+    def run_post_processing(self):
+        self.analyzer.cdf()
+
+
+def plot_cdf(fp, name):
+    fp.seek(0)
+
+    json_dict = json.load(fp)
+
+    graphs = dict()
+
+    #Create a data list for every experiment
+    for x in json_dict["Experiment Count"]:
+        graphs[x] = list()
+
+    for exp in json_dict["Experiments"]:
+        for run in exp["Runs"]:
+            for out in run["Outputs"]:
+                if name in out.keys():
+                    graphs[exp["Experiment Index"]].append(out[name])
+
+    print("Data Points for Exp 1:")
+    print(graphs[1])
+
+
+"""
+    upper_limit = 0
+
+    for exp in json_dict["Experiments"]:
+        graphs[exp["Parameters"][main.name]].append(exp)
+        if exp["Averages"][name]["avg"] > upper_limit:
+            upper_limit = exp["Averages"][name]["avg"]
+  
+    upper_limit = int(upper_limit) + 1
+"""
+
+"""
+    fig = plt.figure(layout='constrained')
+
+    root = math.ceil(math.sqrt(len(main.value)))
+
+    gs = gridspec.GridSpec(root, root, figure=fig)
+
+    xlabel = second.name
+    ylabel = name
+
+    for key, idx in zip(graphs.keys(), itertools.product(range(0, root), range(0, root))):
+
+        x = []
+        y = []
+        for exp in graphs[key]:
+            x.append(exp["Parameters"][second.name])
+            y.append(exp["Averages"][name]["avg"])
+
+        zipped = sorted(zip(x, y))
+
+        print(zipped)
+
+        for i in range(len(x)):
+            x[i], y[i] = zipped[i] 
+        
+
+        ax = fig.add_subplot(gs[idx[0], idx[1]])
+    
+        x = [str(i) for i in x]
+
+        p = ax.bar(x, y , label=x)
+        ax.set_title(f"{main.name} {key}")
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.bar_label(p, label_type='center')
+
+        ax.set(ylim=(0,upper_limit))
+
+
+    plt.savefig("AVG_" + name + "_per_" + main.name +"_and_"+second.name+".png")
+"""
+    
+
 
 
 def plot_avg(file, name, main, second, plot_type):
