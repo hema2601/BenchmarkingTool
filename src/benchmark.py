@@ -63,8 +63,10 @@ class min_max_avg:
 def runningAvg(avg, val, cnt):
     return float(avg) + ((float(val) - float(avg)) / float(cnt))
 
-#TODO: Change the structure of this thing
 
+
+
+#TODO: Change the structure of this thing
 class JsonAnalyzer:
     root_filename = None
     raw_file = None
@@ -145,7 +147,7 @@ class JsonAnalyzer:
             #print(data)
             for i in range(len(names)):
                 #Credit: GeeksForGeeks https://www.geeksforgeeks.org/how-to-calculate-and-plot-a-cumulative-distribution-function-with-matplotlib-in-python/
-                count, bins_count = np.histogram(data[i], bins=25) #TODO: Make number of bins dynamic
+                count, bins_count = np.histogram(data[i], bins=100) #TODO: Make number of bins dynamic
 
                 pdf = count / sum(count)
 
@@ -157,6 +159,106 @@ class JsonAnalyzer:
                 plt.legend()
     
                 plt.savefig(dirpath + "CDF_Experiment#" + str(exp_idx) + "_" + names[i] + ".png")
+
+
+
+    def generate_excel(self, parameter, values, source_file="avg", excel_name=None):
+        
+        #Create Excel File
+        dirpath = os.path.split(self.root_filename)[0] + "/Excel_Files/"
+        
+        if os.path.isdir(dirpath) == False:
+            os.mkdir(dirpath)
+
+        if excel_name == None:
+            excel_name = parameter + (("_" + value) for value in values) #TODO find better standard naming
+
+        excel = open(dirpath + excel_name, "w+")
+
+        #Read data from file
+        json_source = None
+        if source_file == "raw":
+            print("Fatal Error: Do not support raw data formatting yet") #TODO: Fix this
+            return
+            json_source = self.raw_file
+        elif source_file == "avg":
+            json_source = self.avg_file
+        else:
+            print("Fatal Error: Unknown File Type")
+            return
+
+        json_source.seek(0)
+        json_dict = json.load(json_source)
+        
+
+        #Verify Existing Restrains (So far, this function only supports generating excel files for benchmarks that have one varying variable)
+        paras = []
+        for exp in json_dict["Experiments"]:
+            if exp["Parameters"][parameter] in paras:
+                print("Fatal Error: generate_excel() not supporte for this type of benchmark")
+                return
+            else:
+                paras.append(exp["Parameters"][parameter])
+
+        #Sort Experiments based on para values
+        exps = [x for _, x in sorted(zip(paras, json_dict["Experiments"]))]
+
+
+
+
+        #Write each table
+       
+        
+        #Header
+
+        headers = list()
+        headers.append(list())
+        headers[0].append(parameter)
+
+        print(len(headers))
+        
+        for tup in values:
+            for val in tup:
+                
+                if (len(headers) - 1) < (tup.index(val)):
+                    headers.append([" " for _ in range(len(headers[tup.index(val) - 1]) - 1)])
+                    
+                headers[tup.index(val)].append(val)
+
+        for line in headers:
+            curr = line[0]
+            for i in range(len(line[1:])):
+                if line[i+1] == curr:
+                    line[i+1] = " "
+                else:   
+                    curr = line[i+1]
+            excel.write(''.join((elem + ", ") for elem in line)[:-2] + "\n")
+
+
+        """
+        next_string = parameter + (''.join((", " + value[0]) for value in values)) #TODO Fix this ugly workaround
+        
+        excel.write(next_string + "\n")
+        """
+
+        #Data
+        for exp in exps:
+            next_string = str(exp["Parameters"][parameter])
+            for tup in values:
+                next_string += ", " + str(access_json(exp["Averages"], tup))
+
+            excel.write(next_string + "\n")
+
+        excel.close()
+            
+
+
+def access_json(json_dict, access_tuple):
+    curr = json_dict
+    for x in access_tuple:
+        curr = curr[x]
+
+    return curr
 
 
 
@@ -644,6 +746,9 @@ class BenchmarkObj:
         self.analyzer.raw_file.close()
 
     def run_post_processing(self):
+        self.analyzer.average()
+        self.analyzer.generate_excel("Values", [("Initialization", "avg"), ("RPC Header", "avg"), ("Marshalling", "avg"), ("Sending", "avg"), ("Polling", "avg"), ("Receiving", "avg"), ("Unmarshalling", "avg")], "avg", "averages_excel.txt")
+        self.analyzer.generate_excel("Values", [("Marshalling", "avg"), ("Marshalling", "min"), ("Marshalling", "max"), ("Unmarshalling", "avg"), ("Unmarshalling", "min"), ("Unmarshalling", "max")], "avg", "marshalling_unmarshalling_excel.txt")
         self.analyzer.cdf()
 
 
