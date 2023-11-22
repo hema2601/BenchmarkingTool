@@ -11,6 +11,8 @@ import numpy as np
 import matplotlib.gridspec as gridspec
 import math
 import tomli
+import scipy.stats as stats
+
 
 class min_max_avg:
     minimum = None
@@ -72,6 +74,7 @@ class JsonAnalyzer:
     raw_file = None
     date = None
     avg_file = None
+    filtered_avg_file = None
 
     def __init__(self, file_name="json.txt"):
         self.root_filename = file_name
@@ -107,6 +110,68 @@ class JsonAnalyzer:
         self.avg_file = open(split[0]+"/avg_"+split[1], "w+")
 
         self.avg_file.write(json.dumps(average_dict))
+
+
+    def filtered_average(self):
+
+
+        threshold = 3 #TODO: Get this from the user?
+
+        self.raw_file.seek(0)
+        json_dict = json.load(self.raw_file)
+
+
+        #Determine how many averages need to be calculated
+        value_names = list()
+
+        for out in json_dict["Experiments"][0]["Runs"][0]["Outputs"]:
+            for key in out.keys():
+                value_names.append(key)
+
+        print(value_names)
+
+        
+
+        #Create properly formatted dictionary 
+        filtered_avg_dict = dict()
+        filtered_avg_dict["Experiments"] = []
+        
+        #Calculate filtered average for every experiment
+        for i, exp in enumerate(json_dict["Experiments"]):
+
+            #Format Experiment Object in Dict
+            filtered_avg_dict["Experiments"].append(exp)
+            filtered_avg_dict["Experiments"][i]["Filtered Avg"] = dict() 
+
+            #Collect all necessary data
+            data_points = {key: [] for key in value_names}
+            for run in exp["Runs"]:
+                for out in run["Outputs"]:
+                    for key in out.keys():
+                        data_points[key].append(out[key])
+
+            #Filter out outliers and compute min/max/avg
+            for key in data_points.keys():
+                zscore = stats.zscore(data_points[key])
+
+                filtered = [data_points[key][i] for i in range(len(data_points[key])) if abs(zscore[i]) < threshold]
+                data_points[key] = filtered
+
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["avg"] = float(np.mean(data_points[key]))
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["max"] = int(np.max(data_points[key]))
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["min"] = int(np.min(data_points[key]))
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["count"] = len(data_points[key])
+
+            #remove unnecessary kv pairs
+            del filtered_avg_dict["Experiments"][i]["Run Count"]
+            del filtered_avg_dict["Experiments"][i]["Runs"]
+       
+
+        #Write to File
+        split = os.path.split(self.root_filename)
+        self.filtered_avg_file = open(split[0]+"/filtered_avg_"+split[1], "w+")
+        self.filtered_avg_file.write(json.dumps(filtered_avg_dict))
+
 
 
     def cdf(self):
@@ -746,10 +811,14 @@ class BenchmarkObj:
         self.analyzer.raw_file.close()
 
     def run_post_processing(self):
-        self.analyzer.average()
-        self.analyzer.generate_excel("Values", [("Initialization", "avg"), ("RPC Header", "avg"), ("Marshalling", "avg"), ("Sending", "avg"), ("Polling", "avg"), ("Receiving", "avg"), ("Unmarshalling", "avg")], "avg", "averages_excel.txt")
-        self.analyzer.generate_excel("Values", [("Marshalling", "avg"), ("Marshalling", "min"), ("Marshalling", "max"), ("Unmarshalling", "avg"), ("Unmarshalling", "min"), ("Unmarshalling", "max")], "avg", "marshalling_unmarshalling_excel.txt")
-        self.analyzer.cdf()
+
+        print("Begin Post Processing")
+
+        #self.analyzer.average()
+        self.analyzer.filtered_average()
+        #self.analyzer.generate_excel("Values", [("Initialization", "avg"), ("RPC Header", "avg"), ("Marshalling", "avg"), ("Sending", "avg"), ("Polling", "avg"), ("Receiving", "avg"), ("Unmarshalling", "avg")], "avg", "averages_excel.txt")
+        #self.analyzer.generate_excel("Values", [("Marshalling", "avg"), ("Marshalling", "min"), ("Marshalling", "max"), ("Unmarshalling", "avg"), ("Unmarshalling", "min"), ("Unmarshalling", "max")], "avg", "marshalling_unmarshalling_excel.txt")
+        #self.analyzer.cdf()
 
 
 def plot_cdf(fp, name):
