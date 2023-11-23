@@ -157,10 +157,12 @@ class JsonAnalyzer:
                 filtered = [data_points[key][i] for i in range(len(data_points[key])) if abs(zscore[i]) < threshold]
                 data_points[key] = filtered
 
-                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["avg"] = float(np.mean(data_points[key]))
-                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["max"] = int(np.max(data_points[key]))
-                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["min"] = int(np.min(data_points[key]))
-                filtered_avg_dict["Experiments"][i]["Filtered Avg"]["count"] = len(data_points[key])
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"][key] = dict()
+                
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"][key]["avg"] = float(np.mean(data_points[key]))
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"][key]["max"] = int(np.max(data_points[key]))
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"][key]["min"] = int(np.min(data_points[key]))
+                filtered_avg_dict["Experiments"][i]["Filtered Avg"][key]["count"] = len(data_points[key])
 
             #remove unnecessary kv pairs
             del filtered_avg_dict["Experiments"][i]["Run Count"]
@@ -242,12 +244,17 @@ class JsonAnalyzer:
 
         #Read data from file
         json_source = None
+        access_point = None
         if source_file == "raw":
             print("Fatal Error: Do not support raw data formatting yet") #TODO: Fix this
             return
             json_source = self.raw_file
         elif source_file == "avg":
             json_source = self.avg_file
+            access_point = "Averages"
+        elif source_file == "fil_avg":
+            json_source = self.filtered_avg_file
+            access_point = "Filtered Avg"
         else:
             print("Fatal Error: Unknown File Type")
             return
@@ -310,7 +317,7 @@ class JsonAnalyzer:
         for exp in exps:
             next_string = str(exp["Parameters"][parameter])
             for tup in values:
-                next_string += ", " + str(access_json(exp["Averages"], tup))
+                next_string += ", " + str(access_json(exp[access_point], tup))
 
             excel.write(next_string + "\n")
 
@@ -814,10 +821,9 @@ class BenchmarkObj:
 
         print("Begin Post Processing")
 
-        #self.analyzer.average()
+        self.analyzer.average()
         self.analyzer.filtered_average()
-        #self.analyzer.generate_excel("Values", [("Initialization", "avg"), ("RPC Header", "avg"), ("Marshalling", "avg"), ("Sending", "avg"), ("Polling", "avg"), ("Receiving", "avg"), ("Unmarshalling", "avg")], "avg", "averages_excel.txt")
-        #self.analyzer.generate_excel("Values", [("Marshalling", "avg"), ("Marshalling", "min"), ("Marshalling", "max"), ("Unmarshalling", "avg"), ("Unmarshalling", "min"), ("Unmarshalling", "max")], "avg", "marshalling_unmarshalling_excel.txt")
+        self.analyzer.generate_excel("Bytes", [("Cycles", "avg")], "fil_avg", "filtered_averages_excel.txt")
         #self.analyzer.cdf()
 
 
