@@ -266,12 +266,18 @@ class JsonAnalyzer:
         #Verify Existing Restrains (So far, this function only supports generating excel files for benchmarks that have one varying variable)
         paras = []
         for exp in json_dict["Experiments"]:
-            if exp["Parameters"][parameter] in paras:
-                print("Fatal Error: generate_excel() not supporte for this type of benchmark")
-                return
-            else:
-                paras.append(exp["Parameters"][parameter])
+            #if exp["Parameters"][parameter] in paras:
+            #    print("Fatal Error: generate_excel() not supporte for this type of benchmark")
+            #    return
+            #else:
+            #   paras.append(exp["Parameters"][parameter])
+            paras.append(tuple(exp["Parameters"].values()))
 
+
+        print(paras)
+        print(zip(paras, json_dict["Experiments"]))
+        print(sorted(zip(paras, json_dict["Experiments"])))
+        
         #Sort Experiments based on para values
         exps = [x for _, x in sorted(zip(paras, json_dict["Experiments"]))]
 
@@ -359,12 +365,15 @@ class Command:
 
     command = None
 
-    def __init__(self, binary, para_list):
+    def __init__(self, binary, para_list, sudo):
 
         self.command = [binary]
 
         for para in para_list.parameters:
             self.command.append(para.format_opt())
+
+        if sudo is True:
+            self.needs_sudo()
 
     def get_command(self):
         return self.command
@@ -372,6 +381,9 @@ class Command:
     def to_file(self, filename):
         self.command.append(">")
         self.command.append(filename)
+
+    def needs_sudo(self):
+        self.command = ['sudo'] + self.command
 
 
 class Parameter:
@@ -490,13 +502,16 @@ class ParameterList:
     
         completed_combs = []
 
+        if combs is None:
+            combs = [None]
+            
         for each in combs:
             completed_combs.append(self.fill_in_static_paras(each))
 
         return completed_combs
 
     def resolve_relations(self, combs):
-        
+  
         if len(self.relations) == 0:
             return combs
 
@@ -508,21 +523,19 @@ class ParameterList:
             combs[i] = tuple(temp)
 
         return combs
-                
-
 
     def get_para_combinations(self):
 
-        #Resolve Ranged Parameters
+        # Resolve Ranged Parameters
         combs = self.resolve_ranged()
 
-        #Add Static Parameters
+        # Add Static Parameters
         combs = self.complete_para_combs(combs)
 
-        #Resolve Relations
-        combs = self.resolve_relations(combs) 
+        # Resolve Relations
+        combs = self.resolve_relations(combs)
 
-        #Remove Duplicates
+        # Remove Duplicates
         combs = list(set(combs))
 
         return combs
@@ -636,12 +649,12 @@ class ExperimentObj:
     thread_count_mode = None 
     runs = None
 
-    def __init__(self, analyzer, idx, binary, parameters, runs, thread_count_mode=0):
+    def __init__(self, analyzer, idx, binary, parameters, runs, thread_count_mode=0, sudo=0):
         self.analyzer = analyzer
         self.idx = idx
         self.parameters = parameters
         self.binary = binary
-        self.command = Command(binary, parameters)
+        self.command = Command(binary, parameters, sudo)
         self.thread_count_mode = thread_count_mode
         self.runs = runs
     
@@ -750,6 +763,9 @@ class ConfigObj:
                                           values if values != "" else None))
         return parameters 
 
+    def get_sudo(self):
+        return self.conf_dict["BASICS"]["SUDO"]
+
 class BenchmarkObj:
     date = None
     title = None
@@ -760,9 +776,10 @@ class BenchmarkObj:
     runs = None
     threading = None
     dir_path = None
+    sudo = None
 
 
-    def __init__(self, title, binary, parameters, filename="json.txt", runs = 1, threading = 0):
+    def __init__(self, title, binary, parameters, filename="json.txt", runs = 1, threading = False, sudo = False):
         self.binary = binary
         self.title = title
         self.date = datetime.now()
@@ -770,6 +787,7 @@ class BenchmarkObj:
         self.parameters = parameters
         self.runs = runs
         self.threading = threading
+        self.sudo = sudo
 
         self.dir_path = "./"+self.title+"_"+self.date_str+"/"
 
@@ -786,7 +804,8 @@ class BenchmarkObj:
                    config.get_paras(),
                    "json.txt",
                    config.get_runs(),
-                   config.get_threading())
+                   config.get_threading(),
+                   config.get_sudo())
         
 
     def run_benchmark(self):
@@ -800,7 +819,7 @@ class BenchmarkObj:
                 self.analyzer.add(", ")
             is_first = False
             self.parameters.assign_paras(para_set)
-            experiment = ExperimentObj(self.analyzer, self.experiment_count, self.binary, self.parameters, self.runs, self.threading)
+            experiment = ExperimentObj(self.analyzer, self.experiment_count, self.binary, self.parameters, self.runs, self.threading, self.sudo)
             print(experiment)
             self.experiment_count += 1
             experiment.run_experiment()
@@ -822,8 +841,8 @@ class BenchmarkObj:
         print("Begin Post Processing")
 
         self.analyzer.average()
-        self.analyzer.filtered_average()
-        self.analyzer.generate_excel("Bytes", [("Cycles", "avg")], "fil_avg", "filtered_averages_excel.txt")
+        #self.analyzer.filtered_average()
+        #self.analyzer.generate_excel("Size", [("Serialization", "avg"), ("Deserialization", "avg"), ("Total", "avg")], "avg", "serial_averages_excel.txt")
         #self.analyzer.cdf()
 
 
