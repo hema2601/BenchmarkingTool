@@ -842,7 +842,7 @@ class BenchmarkObj:
 
         self.analyzer.average()
         #self.analyzer.filtered_average()
-        #self.analyzer.generate_excel("Size", [("Serialization", "avg"), ("Deserialization", "avg"), ("Total", "avg")], "avg", "serial_averages_excel.txt")
+        self.analyzer.generate_excel("N-th Rep", [("counts", "avg")], "avg", "averages_excel.txt")
         #self.analyzer.cdf()
 
 

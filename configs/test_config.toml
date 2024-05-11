@@ -5,6 +5,8 @@ PATH_TO_BIN = "/home/hema/RPC_Research/rpc_demo/client"
 RUNS = 1000
 THREAD_COUNTING = 0
 BENCHMARK_NAME="SunRPC"
+SUDO = false
+
 
 [PARAMETERS]
 NAMES = ["Server IP", "Values"]
