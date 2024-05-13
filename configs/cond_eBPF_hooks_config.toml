@@ -1,0 +1,15 @@
+#Benchmark config file in TOML
+
+[BASICS]
+PATH_TO_BIN = "/home/hema/conditional_eBPF_hooks/scripts/conduct_experiment.sh"
+RUNS = 100
+THREAD_COUNTING = 0
+BENCHMARK_NAME="Conditional_eBPF_Hooks_Preliminary"
+SUDO = true
+
+
+[PARAMETERS]
+NAMES = ["BPF Program Name"]
+SPECIFIERS = [""]
+VALUES = [["none", "tp_type", "kprobe_type", "raw_tp_type"]]
+
