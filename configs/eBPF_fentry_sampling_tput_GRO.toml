@@ -1,0 +1,14 @@
+#Benchmark config file in TOML
+
+[BASICS]
+PATH_TO_BIN = "/home/hema/Conditional_eBPF_hooks/scripts/conduct_experiment_new.sh"
+RUNS = 50
+THREAD_COUNTING = 0
+BENCHMARK_NAME="eBPF_fentry_sampling_tput_GRO_full"
+SUDO = true
+
+[PARAMETERS]
+NAMES = ["BPF Program Name"]
+SPECIFIERS = [""]
+VALUES = [["none", "fentry", "fentry_10", "fentry_100", "fentry_1000", "sampled_fentry_10", "sampled_fentry_100", "sampled_fentry_1000"]]
+
